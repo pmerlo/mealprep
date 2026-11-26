@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meal prep tracker</title>
+<meta name="description" content="Track meal prep batches and how many portions are left.">
+<meta name="theme-color" content="#EBEBEB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Meal prep">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Rethink+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EBEBEB; --surface:#F7F7F7; --ink:#222222; --muted:#6A6A6A; --line:#D2D2D2;
+  --accent:#4D4D4D; --accent-ink:#FFFFFF; --tape:#D6D6D6; --tape-ink:#232323; --dot-off:rgba(0,0,0,.12); --scrim:rgba(0,0,0,.45);
+  --st-bg-s:55%; --st-bg-l:94%; --st-bd-s:40%; --st-bd-l:72%; --st-fg-l:30%; --st-dot-l:42%;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141414; --surface:#1E1E1E; --ink:#E8E8E8; --muted:#9C9C9C; --line:#333333;
+    --accent:#C4C4C4; --accent-ink:#141414; --tape:#3C3C3C; --tape-ink:#EDEDED; --dot-off:rgba(255,255,255,.12); --scrim:rgba(0,0,0,.6);
+    --st-bg-s:30%; --st-bg-l:14%; --st-bd-s:35%; --st-bd-l:32%; --st-fg-l:68%; --st-dot-l:52%;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141414; --surface:#1E1E1E; --ink:#E8E8E8; --muted:#9C9C9C; --line:#333333;
+  --accent:#C4C4C4; --accent-ink:#141414; --tape:#3C3C3C; --tape-ink:#EDEDED; --dot-off:rgba(255,255,255,.12); --scrim:rgba(0,0,0,.6);
+  --st-bg-s:30%; --st-bg-l:14%; --st-bd-s:35%; --st-bd-l:32%; --st-fg-l:68%; --st-dot-l:52%;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 "Rethink Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+main{max-width:620px;margin:0 auto;padding:18px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+h1{font-size:1.6rem;line-height:1.1;font-weight:700;letter-spacing:-.02em;margin:0 0 2px}
+.summary{margin:0 0 14px;color:var(--muted);font-size:.95rem}
+.summary b{color:var(--ink);font-weight:600}
+.sync{margin:-8px 0 14px;color:var(--muted);font-size:.82rem}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.controls{display:flex;align-items:center;gap:10px;margin:0 -14px 14px;padding:0 14px}
+.chips{display:flex;gap:8px;overflow-x:auto;flex:1;min-width:0;padding:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:.9rem;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"]::before{content:"✓ "}
+.sort{flex:none;border:none;background:none;color:var(--ink);font-weight:600;font-size:.88rem;min-height:38px;padding:0 2px;text-decoration:underline;text-underline-offset:3px}
+
+.list{display:grid;gap:10px}
+.batch{--h:135;background:hsl(var(--h) var(--st-bg-s) var(--st-bg-l));border:1px solid hsl(var(--h) var(--st-bd-s) var(--st-bd-l));border-radius:14px;padding:14px 12px 12px}
+.top{display:flex;align-items:flex-start;gap:10px}
+.tape{flex:1;min-width:0;text-align:left;border:none;background:none;padding:0;color:inherit}
+.tape span{display:inline-block;max-width:100%;background:var(--tape);color:var(--tape-ink);font:700 1.3rem/1.15 "Kalam","Marker Felt","Comic Sans MS",cursive;
+  padding:6px 14px 3px;transform:rotate(-1.2deg);overflow-wrap:anywhere;
+  clip-path:polygon(0 6%,3% 0,30% 4%,62% 0,97% 3%,100% 0,98.5% 50%,100% 100%,70% 96%,35% 100%,3% 97%,0 100%,1.5% 50%)}
+.count{flex:none;text-align:right;color:hsl(var(--h) 65% var(--st-fg-l));line-height:1}
+.count .num{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.count .of{font-size:.95rem;font-weight:600}
+.count .lbl{display:block;font-size:.75rem;font-weight:500;margin-top:3px;color:var(--muted)}
+.meta{margin:8px 0 0;color:var(--muted);font-size:.88rem}
+.meta b{color:var(--ink);font-weight:600}
+.warn{margin:8px 0 0;font-size:.82rem;font-weight:600;color:var(--ink);border:1px dashed var(--muted);border-radius:8px;padding:4px 9px;display:inline-block}
+.warn.hot{border-style:solid;border-color:var(--ink)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:.78rem;color:var(--ink);background:var(--surface);border-radius:999px;padding:2px 9px}
+.dots{display:flex;gap:4px;margin-top:12px}
+.dot{flex:1;max-width:28px;height:8px;border-radius:4px;background:var(--dot-off)}
+.dot.on{background:hsl(var(--h) 60% var(--st-dot-l))}
+.actions{display:flex;gap:8px;margin-top:12px}
+.btn{min-height:46px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;padding:0 14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.actions .btn{flex:1 1 0;min-width:0;font-size:1.02rem}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.danger{background:transparent;border-style:dashed;color:var(--ink)}
+.empty{color:var(--muted);text-align:center;padding:36px 12px}
+@media (prefers-reduced-motion:no-preference){.batch,.count,.dot{transition:background-color .3s,border-color .3s,color .3s}}
+
+details.done{margin-top:24px}
+details.done summary{cursor:pointer;color:var(--muted);font-weight:600;padding:10px 0;min-height:44px}
+.done-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 0;border-top:1px solid var(--line)}
+.done-item .info{flex:1 1 180px;min-width:0}
+.done-item .name{font-weight:600;overflow-wrap:anywhere}
+.done-item .sub{color:var(--muted);font-size:.85rem}
+.done-item .btns{display:flex;gap:6px}
+.done-item .btn{min-height:40px;padding:0 12px;font-size:.88rem}
+
+.dock{position:fixed;left:0;right:0;bottom:0;padding:14px 14px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,transparent,var(--bg) 40%)}
+.dock .btn{display:block;width:100%;max-width:620px;margin:0 auto;min-height:54px;font-size:1.05rem}
+.toast{position:fixed;left:14px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom,0px));max-width:592px;margin:0 auto;
+  background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:.92rem}
+.toast button{border:none;background:none;color:var(--bg);font-weight:700;text-decoration:underline;padding:8px 4px;flex:none}
+
+dialog{border:none;padding:0;width:100%;max-width:620px;margin:auto auto 0;border-radius:20px 20px 0 0;background:var(--surface);color:var(--ink);
+  max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px);overflow-y:auto;overscroll-behavior:contain}
+dialog::backdrop{background:var(--scrim)}
+@media (min-width:700px){dialog{margin:auto;border-radius:20px}}
+.sheet{padding:18px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:-6px auto 14px}
+.sheet h2{margin:0 0 14px;font-size:1.2rem}
+.field{display:block;margin-bottom:14px}
+.field > span,.field > .lbl{display:block;font-size:.88rem;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=password],input[type=date],input[type=number]{width:100%;min-height:48px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:0 12px;margin:0}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;line-height:48px}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row.date-row{grid-template-columns:1fr}}
+.stepper{display:flex;gap:6px}
+.stepper input{text-align:center;font-variant-numeric:tabular-nums;min-width:0;padding:0 4px}
+.stepper .btn{flex:none;width:44px;padding:0;font-size:1.25rem}
+.seg{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--bg)}
+.seg button{flex:1;min-height:46px;border:none;background:transparent;color:var(--ink);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tag-pick{display:flex;flex-wrap:wrap;gap:8px}
+.add-tag{display:flex;gap:8px;margin-top:10px}
+.add-tag input{flex:1;min-width:0}
+.sheet-actions{display:flex;gap:8px;margin-top:20px}
+.sheet-actions .btn{flex:1 1 0;min-width:0}
+#fDelete{width:100%;margin-top:10px}
+.error{color:var(--ink);font-weight:600;font-size:.88rem;margin:-6px 0 12px}
+
+.login{max-width:420px;margin:0 auto;padding:12vh 16px 40px}
+.login p{color:var(--muted);margin:0 0 20px}
+.login .btn{width:100%}
+</style>
+</head>
+<body>
+<section class="login" id="login" hidden>
+  <h1>Meal prep</h1>
+  <p>Enter the household password to see your batches.</p>
+  <form id="loginForm" novalidate>
+    <label class="field"><span>Password</span><input type="password" id="lPass" autocomplete="current-password" enterkeyhint="go"></label>
+    <p class="error" id="lErr" hidden></p>
+    <button class="btn primary" type="submit" id="lBtn">Open</button>
+  </form>
+</section>
+
+<main id="app">
+  <h1>Meal prep</h1>
+  <p class="summary" id="summary">Loading…</p>
+  <p class="sync" id="sync" hidden></p>
+  <div class="controls" id="controls" hidden>
+    <div class="chips" id="chips" role="group" aria-label="Filter by tag"></div>
+    <button class="sort" id="sort" type="button"></button>
+  </div>
+  <div class="list" id="list"></div>
+  <details class="done" id="done" hidden>
+    <summary id="doneSummary"></summary>
+    <div id="doneList"></div>
+  </details>
+</main>
+
+<div class="dock" id="dock"><button class="btn primary" id="addBtn" type="button">Log a batch</button></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastMsg"></span><button id="toastAct" type="button" hidden></button></div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="sheet" id="form" novalidate>
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="dlgTitle">Log a batch</h2>
+    <label class="field"><span>What did you cook?</span><input type="text" id="fName" maxlength="80" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" placeholder="Chicken curry"></label>
+    <div class="row date-row">
+      <label class="field"><span>Cooked on</span><input type="date" id="fDate"></label>
+      <div class="field"><span class="lbl">Stored in</span>
+        <div class="seg" id="fStorage" role="group" aria-label="Stored in"><button type="button" data-v="fridge">Fridge</button><button type="button" data-v="freezer">Freezer</button></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="lbl" id="lTotal">Portions</span>
+        <div class="stepper"><button class="btn" type="button" data-step="fTotal:-1" aria-label="One fewer portion">−</button><input type="number" id="fTotal" inputmode="numeric" min="1" max="99" aria-labelledby="lTotal"><button class="btn" type="button" data-step="fTotal:1" aria-label="One more portion">+</button></div>
+      </div>
+      <div class="field" id="leftWrap" hidden><span class="lbl" id="lLeft">Left</span>
+        <div class="stepper"><button class="btn" type="button" data-step="fLeft:-1" aria-label="One fewer left">−</button><input type="number" id="fLeft" inputmode="numeric" min="0" max="99" aria-labelledby="lLeft"><button class="btn" type="button" data-step="fLeft:1" aria-label="One more left">+</button></div>
+      </div>
+    </div>
+    <div class="field"><span class="lbl">Tags</span>
+      <div class="tag-pick" id="fTags" role="group" aria-label="Tags"></div>
+      <div class="add-tag"><input type="text" id="fNewTag" maxlength="24" placeholder="Add your own tag" autocomplete="off" enterkeyhint="done" aria-label="New tag"><button class="btn" type="button" id="fAddTag">Add</button></div>
+    </div>
+    <p class="error" id="fErr" hidden></p>
+    <div class="sheet-actions">
+      <button class="btn" type="button" id="fCancel">Cancel</button>
+      <button class="btn primary" type="submit" id="fSave">Save batch</button>
+    </div>
+    <button class="btn danger" type="button" id="fDelete" hidden>Delete batch</button>
+  </form>
+</dialog>
+
+<script>
+(function(){
+const CACHE_KEY='mealprep.cache.v1', QUEUE_KEY='mealprep.queue.v1', SORT_KEY='mealprep.sort.v1';
+const PRESETS=['Protein','Grains','Veg','Legumes','Dairy','Fruit','Soup','Sauce'];
+const POLL_MS=15000;
+const $=id=>document.getElementById(id);
+
+let activeTag=null, sortDir='asc';
+
+function el(tag,attrs,...kids){const n=document.createElement(tag);for(const [k,v] of Object.entries(attrs||{})){
+  if(k==='class')n.className=v;else if(k==='text')n.textContent=v;else if(k.startsWith('on'))n.addEventListener(k.slice(2),v);
+  else if(k.startsWith('aria-'))n.setAttribute(k,String(v));
+  else if(v===true)n.setAttribute(k,'');else if(v!==false&&v!=null)n.setAttribute(k,String(v));}
+  for(const c of kids)if(c!=null)n.append(c);return n;}
+const pad=n=>String(n).padStart(2,'0');
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function parseDay(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function ageDays(s){return Math.round((parseDay(todayStr())-parseDay(s))/86400000);}
+function fmtDay(s){return parseDay(s).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});}
+function ageText(n){return n<=0?(n<0?'in the future':'today'):n===1?'yesterday':n+' days ago';}
+function clampInt(v,lo,hi){v=Math.round(Number(v));return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):lo;}
+function newId(){try{return crypto.randomUUID();}catch(e){return Date.now().toString(36)+Math.random().toString(36).slice(2,10);}}
+/* green (all left) -> amber -> red (last portion) */
+function hueFor(b){const t=b.total<=1?1:Math.max(0,Math.min(1,(b.left-1)/(b.total-1)));return Math.round(4+131*t);}
+function normalize(id,b){b=b||{};const total=clampInt(b.total,1,99);
+  return {id,name:String(b.name||'').slice(0,80),cooked:/^\d{4}-\d{2}-\d{2}$/.test(b.cooked)?b.cooked:todayStr(),total,left:clampInt(b.left,0,total),
+    storage:b.storage==='freezer'?'freezer':'fridge',tags:Array.isArray(b.tags)?b.tags.filter(t=>typeof t==='string').map(t=>t.slice(0,24)).slice(0,12):[],created:Number(b.created)||0};}
+
+/* ---------- sync ----------
+   `server` is the last state the server confirmed. `queue` holds changes not yet sent,
+   in order; the screen shows server state with the queue replayed on top. The queue is
+   kept in localStorage so taps made offline survive a reload and sync later. */
+let server=new Map(), queue=[], batches=new Map();
+let inflight=null, flushing=false, offline=false, needsLogin=false, retryTimer=null;
+
+function applyOp(m,op){
+  if(op.t==='put')m.set(op.b.id,op.b);
+  else if(op.t==='del')m.delete(op.id);
+  else if(op.t==='adj'){const b=m.get(op.id);if(b)m.set(op.id,{...b,left:Math.max(0,Math.min(b.total,b.left+op.d))});}
+}
+function rebuild(){const m=new Map(server);for(const op of queue)applyOp(m,op);batches=m;}
+function saveLocal(){try{localStorage.setItem(CACHE_KEY,JSON.stringify([...server.values()]));localStorage.setItem(QUEUE_KEY,JSON.stringify(queue));}catch(e){}}
+function loadLocal(){
+  try{const raw=localStorage.getItem(CACHE_KEY);if(raw)for(const b of JSON.parse(raw))if(b&&b.id)server.set(b.id,normalize(b.id,b));}catch(e){}
+  try{const q=JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]');if(Array.isArray(q))queue=q.filter(o=>o&&(o.t==='put'||o.t==='del'||o.t==='adj'));}catch(e){}
+  rebuild();
+}
+function enqueue(op){
+  const last=queue[queue.length-1];
+  if(op.t==='put'&&last&&last.t==='put'&&last.b.id===op.b.id&&last!==inflight)queue[queue.length-1]=op;
+  else queue.push(op);
+  rebuild();saveLocal();render();flush();
+}
+function send(op){
+  const base='/api/batches/';
+  if(op.t==='put'){const {id,...data}=op.b;return fetch(base+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}
+  if(op.t==='adj')return fetch(base+encodeURIComponent(op.id)+'/adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({delta:op.d})});
+  return fetch(base+encodeURIComponent(op.id),{method:'DELETE'});
+}
+function setOffline(v){offline=v;renderSync();}
+function retryLater(){clearTimeout(retryTimer);retryTimer=setTimeout(flush,8000);}
+
+async function flush(){
+  if(flushing||needsLogin)return;flushing=true;
+  let ok=true;
+  try{
+    while(queue.length){
+      const op=queue[0];inflight=op;let r;
+      try{r=await send(op);}catch(e){ok=false;setOffline(true);retryLater();break;}
+      if(r.status===401){ok=false;showLogin();break;}
+      if(r.status>=500&&r.status!==507){ok=false;setOffline(true);retryLater();break;}
+      if(r.ok){const j=await r.json().catch(()=>({}));
+        if(j.batch)server.set(j.batch.id,normalize(j.batch.id,j.batch));
+        if(op.t==='del')server.delete(op.id);}
+      else if(r.status===507)toast('Storage is full. Delete some finished batches.');
+      else if(r.status!==404)toast('Couldn’t save that change.');
+      queue.shift();inflight=null;rebuild();saveLocal();render();
+    }
+  }finally{inflight=null;flushing=false;}
+  if(ok&&!queue.length)await pull();
+}
+async function pull(){
+  if(needsLogin)return;
+  let r;
+  try{r=await fetch('/api/batches',{cache:'no-store'});}catch(e){setOffline(true);return;}
+  if(r.status===401){showLogin();return;}
+  if(!r.ok){setOffline(true);return;}
+  const j=await r.json().catch(()=>null);if(!j||!Array.isArray(j.batches))return;
+  if(flushing||queue.length)return; // a change was made while we were fetching; the next flush pulls again
+  const m=new Map();for(const b of j.batches)if(b&&b.id)m.set(b.id,normalize(b.id,b));
+  server=m;rebuild();saveLocal();setOffline(false);render();
+}
+
+function persist(b){enqueue({t:'put',b});}
+function removeBatch(id){enqueue({t:'del',id});}
+
+/* ---------- login ---------- */
+function showLogin(){needsLogin=true;$('app').hidden=true;$('dock').hidden=true;$('login').hidden=false;$('lErr').hidden=true;setTimeout(()=>$('lPass').focus(),50);}
+function hideLogin(){needsLogin=false;$('login').hidden=true;$('app').hidden=false;$('dock').hidden=false;}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();
+  const err=$('lErr'),btn=$('lBtn');btn.disabled=true;err.hidden=true;
+  try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('lPass').value})});
+    if(r.ok){$('lPass').value='';hideLogin();await flush();}
+    else{err.textContent=r.status===429?'Too many tries. Wait a few minutes and try again.':'That password didn’t work.';err.hidden=false;}}
+  catch(x){err.textContent='Couldn’t reach the server. Check your connection.';err.hidden=false;}
+  btn.disabled=false;});
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg,actLabel,fn){$('toastMsg').textContent=msg;const a=$('toastAct');
+  if(actLabel){a.textContent=actLabel;a.hidden=false;a.onclick=()=>{fn();$('toast').hidden=true;};}else{a.hidden=true;a.onclick=null;}
+  $('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').hidden=true;},5000);}
+
+/* ---------- actions ---------- */
+function adjust(id,d){const b=batches.get(id);if(!b)return;const left=Math.max(0,Math.min(b.total,b.left+d));if(left===b.left)return;
+  enqueue({t:'adj',id,d:left-b.left});
+  if(left===0&&d<0)toast(b.name+' is finished.','Undo',()=>adjust(id,1));}
+
+/* ---------- render ---------- */
+function renderSync(){const s=$('sync');
+  if(offline){s.textContent=queue.length?'Offline. Your changes will sync when you’re back online.':'Offline. Showing what was saved on this device.';s.hidden=false;}
+  else s.hidden=true;}
+function render(){
+  renderSync();
+  const all=[...batches.values()].filter(b=>b.name);
+  const active=all.filter(b=>b.left>0), done=all.filter(b=>b.left<=0);
+  const used=[...new Set(active.flatMap(b=>b.tags))].sort((a,b)=>a.localeCompare(b));
+  if(activeTag&&!used.includes(activeTag))activeTag=null;
+
+  const sum=$('summary');sum.replaceChildren();
+  if(active.length){const p=active.reduce((s,b)=>s+b.left,0);
+    sum.append(el('b',{text:p+(p===1?' portion':' portions')}),' left in '+active.length+(active.length===1?' batch.':' batches.'));}
+  else sum.textContent='Nothing prepped right now.';
+
+  $('controls').hidden=active.length<2&&!used.length;
+  const chips=$('chips');chips.replaceChildren();
+  if(used.length){const mk=(label,val)=>el('button',{class:'chip',type:'button','aria-pressed':activeTag===val,text:label,onclick:()=>{activeTag=(activeTag===val&&val!==null)?null:val;render();}});
+    chips.append(mk('All',null));used.forEach(t=>chips.append(mk(t,t)));}
+  $('sort').textContent=sortDir==='asc'?'Oldest first':'Newest first';
+
+  const shown=active.filter(b=>!activeTag||b.tags.includes(activeTag))
+    .sort((a,b)=>(a.cooked<b.cooked?-1:a.cooked>b.cooked?1:a.created-b.created)*(sortDir==='asc'?1:-1));
+  const list=$('list');list.replaceChildren();
+  if(!active.length)list.append(el('p',{class:'empty',text:'Log a batch after you cook. Tap “Eat one” each time you take a portion.'}));
+  shown.forEach(b=>list.append(card(b)));
+
+  $('done').hidden=!done.length;
+  $('doneSummary').textContent='Finished · '+done.length;
+  const dl=$('doneList');dl.replaceChildren();
+  done.sort((a,b)=>a.cooked<b.cooked?1:-1).forEach(b=>{
+    const del=el('button',{class:'btn danger',type:'button',text:'Delete'});
+    del.onclick=()=>{if(del.dataset.armed){removeBatch(b.id);}else{del.dataset.armed='1';del.textContent='Confirm';setTimeout(()=>{if(del.isConnected){delete del.dataset.armed;del.textContent='Delete';}},3000);}};
+    dl.append(el('div',{class:'done-item'},
+      el('div',{class:'info'},el('div',{class:'name',text:b.name}),el('div',{class:'sub',text:b.total+' portions, cooked '+fmtDay(b.cooked)})),
+      el('div',{class:'btns'},el('button',{class:'btn',type:'button',text:'Put one back',onclick:()=>adjust(b.id,1)}),del)));
+  });
+}
+function card(b){
+  const age=ageDays(b.cooked);
+  const tape=el('button',{class:'tape',type:'button','aria-label':'Edit '+b.name,onclick:()=>openForm(b)},el('span',{text:b.name}));
+  const count=el('div',{class:'count','aria-label':b.left+' of '+b.total+' portions left'},
+    el('span',{class:'num',text:String(b.left)}),el('span',{class:'of',text:'/'+b.total}),el('span',{class:'lbl',text:'left'}));
+  const meta=el('p',{class:'meta',text:'Cooked '+fmtDay(b.cooked)+', '+ageText(age)});
+  if(b.storage==='freezer')meta.append(', ',el('b',{text:'frozen'}));
+  const art=el('article',{class:'batch'},el('div',{class:'top'},tape,count),meta);
+  art.style.setProperty('--h',hueFor(b));
+  if(b.storage==='fridge'&&age>=3)art.append(el('p',{class:age>=4?'warn hot':'warn',text:age>=4?age+' days in the fridge. Check it before eating.':'Day 3 in the fridge. Eat or freeze soon.'}));
+  if(b.tags.length)art.append(el('div',{class:'tags'},...b.tags.map(t=>el('span',{class:'tag',text:t}))));
+  if(b.total<=24){const dots=el('div',{class:'dots','aria-hidden':'true'});for(let i=0;i<b.total;i++)dots.append(el('span',{class:i<b.left?'dot on':'dot'}));art.append(dots);}
+  art.append(el('div',{class:'actions'},
+    el('button',{class:'btn',type:'button',disabled:b.left>=b.total,'aria-label':'Put one portion of '+b.name+' back',text:'Put back',onclick:()=>adjust(b.id,1)}),
+    el('button',{class:'btn primary',type:'button','aria-label':'Eat one portion of '+b.name,text:'Eat one',onclick:()=>adjust(b.id,-1)})));
+  return art;
+}
+
+/* ---------- form ---------- */
+let editing=null, fTags=new Set(), fStorage='fridge', sessionTags=new Set();
+function renderFormTags(){
+  const known=[];const seen=new Set();
+  const add=t=>{const k=t.toLowerCase();if(!seen.has(k)){seen.add(k);known.push(t);}};
+  PRESETS.forEach(add);[...batches.values()].forEach(b=>b.tags.forEach(add));sessionTags.forEach(add);fTags.forEach(add);
+  const box=$('fTags');box.replaceChildren();
+  known.forEach(t=>box.append(el('button',{class:'chip',type:'button','aria-pressed':fTags.has(t),text:t,
+    onclick:()=>{fTags.has(t)?fTags.delete(t):fTags.add(t);renderFormTags();}})));
+}
+function renderSeg(){$('fStorage').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===fStorage)));}
+function openForm(b){
+  editing=b||null;
+  $('dlgTitle').textContent=b?'Edit batch':'Log a batch';
+  $('fName').value=b?b.name:'';$('fDate').value=b?b.cooked:todayStr();
+  $('fTotal').value=b?b.total:4;$('fLeft').value=b?b.left:'';
+  $('leftWrap').hidden=!b;$('fDelete').hidden=!b;$('fDelete').textContent='Delete batch';delete $('fDelete').dataset.armed;
+  $('fSave').textContent=b?'Save changes':'Save batch';$('fErr').hidden=true;$('fNewTag').value='';
+  fTags=new Set(b?b.tags:[]);sessionTags=new Set();fStorage=b?b.storage:'fridge';renderSeg();renderFormTags();
+  $('dlg').showModal();$('dlg').scrollTop=0;
+}
+function addCustomTag(){const v=$('fNewTag').value.trim().replace(/\s+/g,' ').slice(0,24);if(!v)return;
+  const match=[...PRESETS,...fTags,...sessionTags,...[...batches.values()].flatMap(b=>b.tags)].find(t=>t.toLowerCase()===v.toLowerCase());
+  const tag=match||v;fTags.add(tag);sessionTags.add(tag);$('fNewTag').value='';renderFormTags();}
+$('fAddTag').onclick=addCustomTag;
+$('fNewTag').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addCustomTag();}});
+$('fName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
+$('fStorage').addEventListener('click',e=>{const b=e.target.closest('button');if(b){fStorage=b.dataset.v;renderSeg();}});
+document.querySelectorAll('[data-step]').forEach(btn=>btn.addEventListener('click',()=>{const [id,d]=btn.dataset.step.split(':');const i=$(id);
+  const max=id==='fLeft'?clampInt($('fTotal').value,1,99):99;i.value=clampInt((Number(i.value)||0)+Number(d),id==='fLeft'?0:1,max);}));
+$('fCancel').onclick=()=>$('dlg').close();
+$('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close();});
+$('fDelete').onclick=()=>{const d=$('fDelete');if(d.dataset.armed){removeBatch(editing.id);$('dlg').close();}else{d.dataset.armed='1';d.textContent='Tap again to delete';}};
+$('form').addEventListener('submit',e=>{e.preventDefault();
+  if($('fNewTag').value.trim())addCustomTag();
+  const name=$('fName').value.trim();const err=$('fErr');
+  if(!name){err.textContent='Give the batch a name.';err.hidden=false;$('fName').focus();return;}
+  const cooked=/^\d{4}-\d{2}-\d{2}$/.test($('fDate').value)?$('fDate').value:todayStr();
+  const total=clampInt($('fTotal').value,1,99);const tags=[...fTags];
+  if(editing){const cur=batches.get(editing.id)||editing;
+    const left=$('fLeft').value===''?Math.min(cur.left,total):clampInt($('fLeft').value,0,total);
+    persist({...cur,name,cooked,total,left,storage:fStorage,tags});}
+  else persist({id:newId(),name,cooked,total,left:total,storage:fStorage,tags,created:Date.now()});
+  $('dlg').close();});
+$('addBtn').onclick=()=>openForm(null);
+$('sort').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';try{localStorage.setItem(SORT_KEY,sortDir);}catch(e){}render();};
+
+/* ---------- start ---------- */
+try{if(localStorage.getItem(SORT_KEY)==='desc')sortDir='desc';}catch(e){}
+loadLocal();render();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();flush();}});
+window.addEventListener('online',()=>flush());
+setInterval(()=>{if(!document.hidden&&!$('dlg').open)flush();},POLL_MS);
+
+(async()=>{
+  try{const r=await fetch('/api/session',{cache:'no-store'});const s=await r.json();
+    if(s.authRequired&&!s.authed){showLogin();return;}}
+  catch(e){setOffline(true);return;}
+  flush();
+})();
+})();
+</script>
+</body>
+</html>
